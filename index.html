@@ -2,270 +2,234 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Autospiel mit stufenlosem Lenkrad und Dunkelmodus</title>
+  <title>Autospiel mit Mehreren Spuren und Guter Steuerung</title>
   <style>
-    /* Stil für das SVG und das Auto */
+    /* Breite der Straße */
+    :root {
+        --road-width: 800px;
+        /* Anzahl Spuren nur für Linien-Berechnung in CSS */
+        --num-lines-visual: 5;
+    }
+
+    body {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-height: 100vh;
+        justify-content: center;
+        background-color: #f0f0f0;
+        margin: 0; /* Verhindert unerwartete Ränder */
+    }
+
     #road {
-      width: 560px;
-      height: 450px;
-      background-color: #eee; /* Hellerer Hintergrund für besseren Kontrast */
+      width: var(--road-width);
+      height: 550px;
+      background-color: #6c757d;
       position: relative;
-      margin: 0 auto;
+      margin: 20px auto; /* Oben/Unten etwas Abstand */
       overflow: hidden;
-      border: 1px solid #ccc; /* Optional: Rahmen um die Straße */
+      border: 2px solid #333;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.2);
     }
 
-    #car {
-      width: 40px;
-      height: 80px;
-      background: red;
-      border-radius: 20px 20px 0 0; /* Etwas eckiger */
-      position: absolute;
-      bottom: 10px; /* Etwas höher starten */
-      left: calc(50% - 20px); /* Angepasst an Breite */
-      transition: left 0.1s linear; /* Schnellere Reaktion auf Lenkung */
-      z-index: 10; /* Auto über Hindernissen und Fragmenten */
-      box-shadow: 0 4px 8px rgba(0,0,0,0.3); /* Kleiner Schatten */
+    /* Leitlinien (visuell, beeinflussen Steuerung nicht) */
+    #road::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background-image:
+            repeating-linear-gradient(white 0px, white 25px, transparent 25px, transparent 50px),
+            repeating-linear-gradient(white 0px, white 25px, transparent 25px, transparent 50px),
+            repeating-linear-gradient(white 0px, white 25px, transparent 25px, transparent 50px),
+            repeating-linear-gradient(white 0px, white 25px, transparent 25px, transparent 50px);
+        background-size: 4px 50px;
+        background-repeat: repeat-y;
+        background-position:
+            /* Positioniert 4 Linien für 5 visuelle Spuren */
+            calc(var(--road-width) / var(--num-lines-visual) * 1) 0,
+            calc(var(--road-width) / var(--num-lines-visual) * 2) 0,
+            calc(var(--road-width) / var(--num-lines-visual) * 3) 0,
+            calc(var(--road-width) / var(--num-lines-visual) * 4) 0;
+        z-index: 0;
+        animation: moveLines 0.8s linear infinite;
+        will-change: background-position;
+        animation-play-state: paused;
     }
 
-    /* Stil für die Hindernisse */
+    @keyframes moveLines {
+      0% { background-position-y: 0px; }
+      100% { background-position-y: 50px; }
+    }
+
+#car {
+  width: 50px;
+  height: 80px;
+  background: #dc3545;
+  border-radius: 15px 15px 5px 5px;
+  position: absolute;
+  /* Geänderter Wert für die untere Position */
+  bottom: -300px; /* War vorher 15px */
+  /* Startet genau in der Mitte */
+  left: calc(50% - 25px); /* 25px = halbe Autobbreite */
+  /* Schnellere, lineare Transition für direkte Steuerung */
+  transition: left 0.05s linear; /* Sehr kurze Transition für etwas Glättung */
+  z-index: 10;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+  position: relative; /* Beibehalten für Rad-Positionierung */
+}
+
+    .wheel {
+        position: absolute;
+        width: 14px; height: 20px;
+        background-color: #212529;
+        border-radius: 4px; z-index: 9;
+    }
+    .wheel-tl { top: 10px; left: -8px; }
+    .wheel-tr { top: 10px; right: -8px; }
+    .wheel-bl { bottom: 10px; left: -8px; }
+    .wheel-br { bottom: 10px; right: -8px; }
+
+    /* SVG für Hindernisse */
+    #game-svg {
+        position: absolute; top: 0; left: 0;
+        width: 100%; height: 100%; z-index: 1;
+    }
+
     .obstacle {
-      fill: green;
-      position: absolute; /* Wird eigentlich nicht gebraucht für SVG-Elemente */
-      animation: obstacleAnimation 6s linear infinite; /* Etwas schnellere Hindernisse */
-      transition: fill 0.2s ease; /* Sanfter Farbwechsel */
-      /* Wichtig: Damit getBoundingClientRect korrekte Werte liefert, auch wenn Transform aktiv ist */
+      fill: #28a745;
+      animation: obstacleAnimation 5s linear infinite;
+      transition: fill 0.2s ease;
       transform-origin: center center;
-      will-change: transform; /* Performance-Hinweis */
+      will-change: transform;
+      animation-play-state: paused;
     }
-
-    /* Animation für Hindernisse */
     @keyframes obstacleAnimation {
-      0% { transform: translateY(-150px); } /* Start weiter oben */
-      100% { transform: translateY(650px); } /* Ziel weiter unten */
+      0% { transform: translateY(-150px); }
+      100% { transform: translateY(700px); }
     }
-
-    /* Unterschiedliche Startverzögerungen (optional, macht es zufälliger) */
     .obstacle.o1 { animation-delay: 0s; }
-    .obstacle.o2 { animation-delay: -2s; }
-    .obstacle.o3 { animation-delay: -4s; }
-    .obstacle.o4 { animation-delay: -1s; }
-    .obstacle.o5 { animation-delay: -3s; }
-    .obstacle.o6 { animation-delay: -5s; }
+    .obstacle.o2 { animation-delay: -1.5s; }
+    .obstacle.o3 { animation-delay: -3s; }
+    .obstacle.o4 { animation-delay: -0.5s; }
+    .obstacle.o5 { animation-delay: -2.5s; }
+    .obstacle.o6 { animation-delay: -4s; }
 
-
-    /* Stil für das Lenkrad */
-    #steering-wheel-container { /* Umbenannt für Klarheit */
-      position: relative;
-      width: 300px; /* Angepasste Größe */
-      height: 150px; /* Halbkreis */
-      margin: 20px auto 0; /* Positionierung angepasst */
-      overflow: hidden;
-      cursor: pointer;
-      border: 2px solid #555; /* Rahmen für Klickbereich */
-      border-radius: 150px 150px 0 0; /* Oben abgerundet */
-      background: #f0f0f0; /* Heller Hintergrund */
-    }
-
-    #steering-wheel-svg { /* SVG-Element selbst */
-        width: 100%;
-        height: 100%;
-        display: block;
-    }
-
-    #steering-wheel-svg path {
-      fill: none; /* Innen leer */
-      stroke: black; /* Schwarzer Ring */
-      stroke-width: 10; /* Dicke des Rings */
-    }
-
-    #steering-wheel-svg .wheel-line { /* Gemeinsame Klasse für Linien */
-      stroke: red;
-      stroke-width: 5;
-      transform-origin: 150px 150px; /* Drehpunkt unten Mitte des Containers */
-      transition: transform 0.1s linear; /* Sanftere Drehung */
-    }
-
-    /* Stil für den Dunkelmodus-Schalter */
-    #dark-mode-toggle {
-      position: relative;
-      width: 40px;
-      height: 40px;
-      background-color: #ffd700; /* Goldgelb */
-      border-radius: 50%;
-      cursor: pointer;
-      margin: 20px auto; /* Unter dem Lenkrad zentriert */
-      z-index: 2;
-      border: 2px solid #aaa;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-       display: flex; /* Zentriert Icon */
-       align-items: center;
-       justify-content: center;
-       font-size: 20px; /* Für Icon */
-    }
-     /* Anfangs Sonnen-Icon */
-     #dark-mode-toggle::before {
-        content: '☀️';
+    /* Lenkrad etc. unverändert im Styling */
+     #steering-wheel-container {
+        position: relative; width: 300px; height: 150px;
+        margin: 20px auto 0; overflow: hidden; cursor: pointer;
+        border: 2px solid #555; border-radius: 150px 150px 0 0;
+        background: #f0f0f0; touch-action: none;
      }
+     #steering-wheel-svg { width: 100%; height: 100%; display: block; }
+     #steering-wheel-svg path { fill: none; stroke: black; stroke-width: 10; }
+     #steering-wheel-svg .wheel-line { stroke: red; stroke-width: 5; transform-origin: 150px 150px; transition: transform 0.1s linear; }
+     #dark-mode-toggle { position: relative; width: 40px; height: 40px; background-color: #ffd700; border-radius: 50%; cursor: pointer; margin: 20px auto; z-index: 20; border: 2px solid #aaa; box-shadow: 0 2px 4px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; font-size: 20px; }
+     #dark-mode-toggle::before { content: '☀️'; }
 
+    .hit { fill: #adb5bd !important; }
+    .fragment { pointer-events: none; will-change: transform, opacity; z-index: 5; }
+    .fragment-exploding { animation: explode 0.6s ease-out forwards; }
+    @keyframes explode { 0% { transform: translate(0, 0) scale(1); opacity: 1; } 100% { transform: translate(var(--tx, 0), var(--ty, 0)) scale(0.3); opacity: 0; } }
 
-    /* Neue Klasse für überfahrene Hindernisse */
-    .hit {
-      fill: gray !important; /* Wichtig, um Fill zu überschreiben, auch im Dark Mode */
+    /* Dunkelmodus Stile */
+    body.dark-mode { background-color: #1a1a1a; color: #e0e0e0; }
+    body.dark-mode #road { background-color: #343a40; border: 2px solid #555; }
+    body.dark-mode #road::before {
+         background-image: /* Gleiche Anzahl Linien wie oben */
+            repeating-linear-gradient(#bbb 0px, #bbb 25px, transparent 25px, transparent 50px),
+            repeating-linear-gradient(#bbb 0px, #bbb 25px, transparent 25px, transparent 50px),
+            repeating-linear-gradient(#bbb 0px, #bbb 25px, transparent 25px, transparent 50px),
+            repeating-linear-gradient(#bbb 0px, #bbb 25px, transparent 25px, transparent 50px);
     }
-
-    /* NEU: Stil für Explosionsfragmente */
-    .fragment {
-        pointer-events: none; /* Fragmente sollen nicht klickbar sein oder Kollision auslösen */
-        will-change: transform, opacity; /* Performance-Hinweis */
-    }
-
-    .fragment-exploding {
-        animation: explode 0.6s ease-out forwards; /* Dauer der Explosion */
-    }
-
-    @keyframes explode {
-      0% {
-        transform: translate(0, 0) scale(1);
-        opacity: 1;
-      }
-      100% {
-        /* CSS-Variablen werden per JS gesetzt */
-        transform: translate(var(--tx, 0), var(--ty, 0)) scale(0.3);
-        opacity: 0;
-      }
-    }
-
-
-    /* Dunkelmodus-Stile */
-    body.dark-mode {
-      background-color: #1a1a1a; /* Dunkelgrau statt rein schwarz */
-      color: #e0e0e0; /* Helles Grau für Text */
-    }
-
-    body.dark-mode #road {
-      background-color: #333; /* Dunklerer Straßenhintergrund */
-       border: 1px solid #555;
-    }
-
-    body.dark-mode .obstacle {
-      fill: #006400; /* Dunkleres Grün */
-    }
-
-    body.dark-mode #car {
-      background-color: #b22222; /* Firebrick statt darkred */
-      box-shadow: 0 4px 8px rgba(255,255,255,0.2); /* Hellerer Schatten */
-    }
-
-     body.dark-mode #steering-wheel-container {
-        background: #2c2c2c;
-        border: 2px solid #777;
-     }
-
-    body.dark-mode #steering-wheel-svg path {
-      stroke: #888; /* Dunklerer Ring */
-    }
-
-    body.dark-mode #steering-wheel-svg .wheel-line {
-      stroke: #dc143c; /* Crimson statt darkred */
-    }
-
-    /* .hit bleibt grau, keine extra Regel nötig dank !important */
-
-    body.dark-mode #dark-mode-toggle {
-        background-color: #4a4a4a; /* Dunkler Hintergrund */
-        border: 2px solid #888;
-        box-shadow: 0 2px 4px rgba(255,255,255,0.1);
-    }
-     /* Mond-Icon im Dark Mode */
-    body.dark-mode #dark-mode-toggle::before {
-        content: '🌙';
-    }
+    body.dark-mode .obstacle { fill: #1e7e34; }
+    body.dark-mode #car { background-color: #b22222; box-shadow: 0 4px 8px rgba(255,255,255,0.2); }
+    body.dark-mode .wheel { background-color: #111; }
+    body.dark-mode #steering-wheel-container { background: #2c2c2c; border: 2px solid #777; }
+    body.dark-mode #steering-wheel-svg path { stroke: #888; }
+    body.dark-mode #steering-wheel-svg .wheel-line { stroke: #dc143c; }
+    body.dark-mode #dark-mode-toggle { background-color: #4a4a4a; border: 2px solid #888; box-shadow: 0 2px 4px rgba(255,255,255,0.1); }
+    body.dark-mode #dark-mode-toggle::before { content: '🌙'; }
 
   </style>
 </head>
 <body>
   <div id="road">
-    <svg id="game-svg" width="100%" height="100%">
-      <!-- Hindernisse als Kreise - Mehr davon! -->
-      <circle class="obstacle o1" cx="80" cy="-50" r="25" />
-      <circle class="obstacle o2" cx="200" cy="-150" r="35" />
-      <circle class="obstacle o3" cx="350" cy="-80" r="30" />
-      <circle class="obstacle o4" cx="480" cy="-250" r="40" />
-      <circle class="obstacle o5" cx="150" cy="-350" r="30" />
-      <circle class="obstacle o6" cx="400" cy="-450" r="28" />
-      <circle class="obstacle o1" cx="280" cy="-550" r="32" />
-      <circle class="obstacle o2" cx="50"  cy="-650" r="22" />
-      <circle class="obstacle o3" cx="450" cy="-720" r="38" />
-       <!-- Man kann hier leicht weitere hinzufügen -->
+    <svg id="game-svg">
+      <!-- Hindernisse - CX Werte sind jetzt relativ zur breiten Straße -->
+      <!-- Spurzentren ca.: 80, 240, 400, 560, 720 -->
+      <circle class="obstacle o1" cx="80"  cy="-50" r="30" />
+      <circle class="obstacle o2" cx="400" cy="-150" r="35" />
+      <circle class="obstacle o3" cx="720" cy="-80" r="28" />
+      <circle class="obstacle o4" cx="240" cy="-250" r="40" />
+      <circle class="obstacle o5" cx="560" cy="-350" r="30" />
+      <circle class="obstacle o6" cx="80"  cy="-450" r="25" />
+      <circle class="obstacle o1" cx="400" cy="-550" r="32" />
+      <circle class="obstacle o2" cx="720" cy="-650" r="22" />
+      <circle class="obstacle o3" cx="240" cy="-720" r="38" />
+      <circle class="obstacle o4" cx="560" cy="-820" r="33" />
+      <circle class="obstacle o5" cx="400" cy="-900" r="29" />
     </svg>
-    <!-- Das Auto -->
-    <div id="car"></div>
+    <div id="car">
+        <div class="wheel wheel-tl"></div>
+        <div class="wheel wheel-tr"></div>
+        <div class="wheel wheel-bl"></div>
+        <div class="wheel wheel-br"></div>
+    </div>
   </div>
 
-  <!-- Lenkrad -->
   <div id="steering-wheel-container">
-    <svg id="steering-wheel-svg" viewBox="0 0 300 150"> <!-- viewBox für Skalierbarkeit -->
-      <!-- Halbkreis -->
-      <path d="M 20 145 A 130 130 0 0 1 280 145" fill="none" stroke="black" stroke-width="10" />
-      <!-- Rote Linie (als Gruppe für gemeinsame Drehung) -->
+     <svg id="steering-wheel-svg" viewBox="0 0 300 150">
+      <path d="M 20 145 A 130 130 0 0 1 280 145" />
       <g id="wheel-lines">
           <line class="wheel-line" x1="150" y1="150" x2="150" y2="50" />
-          <!-- Optional: Speichen hinzufügen -->
           <line class="wheel-line" x1="150" y1="150" x2="50" y2="100" />
-           <line class="wheel-line" x1="150" y1="150" x2="250" y2="100" />
+          <line class="wheel-line" x1="150" y1="150" x2="250" y2="100" />
       </g>
     </svg>
   </div>
 
-  <!-- Dunkelmodus-Schalter -->
   <div id="dark-mode-toggle"></div>
 
   <script>
     const car = document.getElementById('car');
     const road = document.getElementById('road');
     const steeringWheelContainer = document.getElementById('steering-wheel-container');
-    const wheelLines = document.getElementById('wheel-lines'); // Gruppe der Linien
+    const wheelLines = document.getElementById('wheel-lines');
     const darkModeToggle = document.getElementById('dark-mode-toggle');
-    const gameSvg = document.getElementById('game-svg'); // SVG-Container für Fragmente
+    const gameSvg = document.getElementById('game-svg');
 
-    let isDragging = false;
-    let currentAngle = 0; // Aktueller Lenkwinkel
+    // --- Spielzustand ---
+    let isSteeringActive = false;
+    let currentAngle = 0;
+    let collisionCheckInterval;
+    let animationRunning = false;
+    let returnIntervalId = null; // Für das Rückkehr-Intervall
 
     // --- Lenkrad-Logik ---
-
     function getAngleFromEvent(event) {
+        if (event.touches) event.preventDefault();
         const rect = steeringWheelContainer.getBoundingClientRect();
         const centerX = rect.left + rect.width / 2;
-        const centerY = rect.top + rect.height; // Drehpunkt unten mittig
+        const centerY = rect.top + rect.height;
         const clientX = event.touches ? event.touches[0].clientX : event.clientX;
         const clientY = event.touches ? event.touches[0].clientY : event.clientY;
-
-        // Winkel berechnen (atan2 gibt Winkel im Bogenmaß zurück)
-        let angle = Math.atan2(clientY - centerY, clientX - centerX);
-
-        // Winkel auf den oberen Halbkreis beschränken (-PI bis 0) und in Grad umwandeln
-        // und dann auf einen Bereich von ca. -90 bis +90 Grad mappen
-        angle = angle * (180 / Math.PI); // In Grad
-
-        // Anpassen, sodass 0 Grad nach oben zeigt (-90 Grad von atan2)
-        angle += 90;
-
-        // Begrenzen auf ca. +/- 80 Grad (etwas weniger als volle 90 für besseres Gefühl)
+        let angle = Math.atan2(clientY - centerY, clientX - centerX) * (180 / Math.PI) + 90;
         angle = Math.max(-80, Math.min(80, angle));
         return angle;
     }
 
     function updateSteeringWheel(angle) {
         currentAngle = angle;
-        wheelLines.style.transform = `rotate(${angle}deg)`; // Dreht die ganze Gruppe
+        wheelLines.style.transform = `rotate(${angle}deg)`;
     }
 
+    // --- Auto Bewegung (wie am Anfang, angepasst an breite Straße) ---
     function moveCar(angle) {
         const roadWidth = road.offsetWidth;
         const carWidth = car.offsetWidth;
-        // Maximaler Ausschlag des Autos (z.B. 40% der Straßenbreite zu jeder Seite)
-        const maxCarOffset = (roadWidth - carWidth) * 0.45;
+        // Maximaler Ausschlag des Autos (z.B. 48% der verfügbaren Breite zu jeder Seite)
+        const maxCarOffset = (roadWidth - carWidth) * 0.48;
 
         // Mappt den Winkel (-80 bis +80) auf den Offset (-maxCarOffset bis +maxCarOffset)
         const carOffset = (angle / 80) * maxCarOffset;
@@ -276,159 +240,152 @@
         // Begrenzen, damit das Auto auf der Straße bleibt
         const minLeft = 0;
         const maxLeft = roadWidth - carWidth;
+        // Direkte Zuweisung, die CSS-Transition sorgt für Glättung
         car.style.left = `${Math.max(minLeft, Math.min(maxLeft, carLeft))}px`;
     }
 
 
     function handleSteeringStart(event) {
-        isDragging = true;
+        if (!animationRunning) return;
+        // Stoppt das automatische Zurückkehren, falls es noch läuft
+        if (returnIntervalId) {
+             clearInterval(returnIntervalId);
+             returnIntervalId = null;
+        }
+        isSteeringActive = true;
         const angle = getAngleFromEvent(event);
         updateSteeringWheel(angle);
-        moveCar(angle);
+        moveCar(angle); // Auto sofort bewegen
         steeringWheelContainer.style.cursor = 'grabbing';
     }
 
     function handleSteeringMove(event) {
-        if (isDragging) {
-            // Verhindert Textauswahl beim Ziehen
-            event.preventDefault();
-            const angle = getAngleFromEvent(event);
-            updateSteeringWheel(angle);
-            moveCar(angle);
-        }
+        if (!isSteeringActive || !animationRunning) return;
+        const angle = getAngleFromEvent(event);
+        updateSteeringWheel(angle);
+        moveCar(angle); // Auto während der Bewegung aktualisieren
     }
 
     function handleSteeringEnd() {
-        if (isDragging) {
-            isDragging = false;
-            // Langsam zurück zur Mitte drehen
-            let intervalId = setInterval(() => {
-                currentAngle *= 0.8; // Faktor für Rückstellgeschwindigkeit
+        if (!isSteeringActive) return;
+        isSteeringActive = false;
+        steeringWheelContainer.style.cursor = 'pointer';
+
+        // Startet das Intervall, um das Lenkrad und das Auto sanft zurückzusetzen
+        if (returnIntervalId) clearInterval(returnIntervalId); // Sicherheitshalber altes Intervall löschen
+        returnIntervalId = setInterval(() => {
+            currentAngle *= 0.85; // Etwas langsamer zurück als 0.8 für besseres Gefühl
+            updateSteeringWheel(currentAngle);
+            moveCar(currentAngle); // Auto folgt der Lenkradbewegung zurück
+            if (Math.abs(currentAngle) < 0.5) { // Näher an 0 kommen lassen
+                currentAngle = 0;
                 updateSteeringWheel(currentAngle);
-                moveCar(currentAngle);
-                if (Math.abs(currentAngle) < 1) {
-                    currentAngle = 0;
-                    updateSteeringWheel(currentAngle);
-                    moveCar(currentAngle);
-                    clearInterval(intervalId);
-                }
-            }, 20); // Intervall für sanftes Zurückdrehen
-            steeringWheelContainer.style.cursor = 'pointer';
-        }
+                moveCar(currentAngle); // Endgültige Mittelposition
+                clearInterval(returnIntervalId);
+                returnIntervalId = null;
+            }
+        }, 20); // Intervallzeit
     }
 
-    // Event-Listener für das Lenkrad (Maus und Touch)
+    // Event-Listener für das Lenkrad
     steeringWheelContainer.addEventListener('mousedown', handleSteeringStart);
-    steeringWheelContainer.addEventListener('touchstart', handleSteeringStart, { passive: false }); // passive: false wegen preventDefault
-
-    document.addEventListener('mousemove', handleSteeringMove); // Auf document lauschen, damit es auch außerhalb funktioniert
-    document.addEventListener('touchmove', handleSteeringMove, { passive: false }); // passive: false wegen preventDefault
-
+    steeringWheelContainer.addEventListener('touchstart', handleSteeringStart, { passive: false });
+    document.addEventListener('mousemove', handleSteeringMove);
+    document.addEventListener('touchmove', handleSteeringMove, { passive: false });
     document.addEventListener('mouseup', handleSteeringEnd);
     document.addEventListener('touchend', handleSteeringEnd);
-    steeringWheelContainer.addEventListener('mouseleave', handleSteeringEnd); // Auch wenn Maus Container verlässt
+    document.addEventListener('mouseleave', () => { if (isSteeringActive) handleSteeringEnd(); });
 
 
-    // --- Kollisionserkennung und Explosion ---
-
+    // --- Kollisionserkennung und Explosion (Logik unverändert) ---
     function checkCollision() {
-      const carRect = car.getBoundingClientRect();
-      // Wähle nur Hindernisse aus, die nicht bereits als getroffen markiert sind
-      const obstacles = gameSvg.querySelectorAll('.obstacle:not(.hit)');
+        if (!animationRunning) return;
+        const carRect = car.getBoundingClientRect();
+        const obstacles = gameSvg.querySelectorAll('.obstacle:not(.hit)');
+        const roadRect = road.getBoundingClientRect();
 
-      obstacles.forEach(obstacle => {
-        const obstacleRect = obstacle.getBoundingClientRect();
-
-        // Einfache Rechteck-Kollisionsprüfung
-        if (isColliding(carRect, obstacleRect)) {
-          // Nur explodieren lassen, wenn nicht schon .hit (Doppelcheck, falls QuerySelector nicht schnell genug war)
-          if (!obstacle.classList.contains('hit')) {
-                obstacle.classList.add('hit');
-                createExplosion(obstacle); // Explosion auslösen
-
-                // Nach kurzer Zeit die .hit-Klasse wieder entfernen, damit es normal weiterfährt
-                setTimeout(() => {
-                    // Nur entfernen, wenn das Element noch existiert
-                    if(obstacle) {
-                        obstacle.classList.remove('hit');
-                    }
-                }, 600); // Etwas länger als die Explosionsanimation
+        obstacles.forEach(obstacle => {
+            const obstacleRect = obstacle.getBoundingClientRect();
+             if (obstacleRect.bottom < roadRect.top - 50 || obstacleRect.top > roadRect.bottom + 50) {
+                 return;
+             }
+            if (isColliding(carRect, obstacleRect)) {
+                if (!obstacle.classList.contains('hit')) {
+                    obstacle.classList.add('hit');
+                    createExplosion(obstacle);
+                    setTimeout(() => {
+                        if (obstacle) obstacle.classList.remove('hit');
+                    }, 600);
+                }
             }
-        }
-      });
+        });
     }
-
-    function isColliding(rect1, rect2) {
-      // Prüft auf Überlappung der Rechtecke
-      return !(rect1.right < rect2.left ||
-               rect1.left > rect2.right ||
-               rect1.bottom < rect2.top ||
-               rect1.top > rect2.bottom);
-    }
-
-    // NEU: Funktion zum Erstellen der Explosion
-    function createExplosion(obstacle) {
-        const numFragments = 8; // Anzahl der Teile
-        const explosionDuration = 600; // Dauer in ms (sollte CSS-Animation entsprechen)
-
-        // Position relativ zum SVG-Container bekommen
-        const obstacleRect = obstacle.getBoundingClientRect();
-        const svgRect = gameSvg.getBoundingClientRect();
+    function isColliding(rect1, rect2) { /*...*/ return !(rect1.right < rect2.left || rect1.left > rect2.right || rect1.bottom < rect2.top || rect1.top > rect2.bottom); }
+    function createExplosion(obstacle) { /*...*/
+        const numFragments = 8; const explosionDuration = 600;
+        const obstacleRect = obstacle.getBoundingClientRect(); const svgRect = gameSvg.getBoundingClientRect();
         const startX = obstacleRect.left + obstacleRect.width / 2 - svgRect.left;
         const startY = obstacleRect.top + obstacleRect.height / 2 - svgRect.top;
-
-        // Farbe des Hindernisses VOR dem Treffer holen
         const color = window.getComputedStyle(obstacle).fill;
-
         for (let i = 0; i < numFragments; i++) {
             const fragment = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-            const fragmentSize = 3 + Math.random() * 4; // Zufällige Größe der Teile
-
-            fragment.setAttribute('cx', startX);
-            fragment.setAttribute('cy', startY);
-            fragment.setAttribute('r', fragmentSize);
-            fragment.setAttribute('fill', color); // Gleiche Farbe wie Hindernis
-            fragment.classList.add('fragment'); // Basis-Klasse
-
-            // Zufällige Richtung und Distanz für die Explosion berechnen
-            const angle = Math.random() * Math.PI * 2;
-            const distance = 40 + Math.random() * 60; // Wie weit die Teile fliegen
-            const tx = Math.cos(angle) * distance;
-            const ty = Math.sin(angle) * distance;
-
-            // CSS-Variablen für die Animation setzen
-            fragment.style.setProperty('--tx', `${tx}px`);
-            fragment.style.setProperty('--ty', `${ty}px`);
-
-            gameSvg.appendChild(fragment);
-            fragment.classList.add('fragment-exploding'); // Startet die CSS-Animation
-
-            // Fragment nach der Animation entfernen
-            setTimeout(() => {
-                fragment.remove();
-            }, explosionDuration);
+            const fragmentSize = 3 + Math.random() * 4;
+            fragment.setAttribute('cx', startX); fragment.setAttribute('cy', startY); fragment.setAttribute('r', fragmentSize); fragment.setAttribute('fill', color); fragment.classList.add('fragment');
+            const angle = Math.random() * Math.PI * 2; const distance = 40 + Math.random() * 60;
+            const tx = Math.cos(angle) * distance; const ty = Math.sin(angle) * distance;
+            fragment.style.setProperty('--tx', `${tx}px`); fragment.style.setProperty('--ty', `${ty}px`);
+            gameSvg.appendChild(fragment); fragment.classList.add('fragment-exploding');
+            setTimeout(() => fragment.remove(), explosionDuration);
         }
+     }
+
+    // --- Spielstart / Sichtbarkeit / Animationen (unverändert) ---
+    function controlAnimations(run) {
+        const playState = run ? 'running' : 'paused';
+        road.style.setProperty('animation-play-state', playState);
+        gameSvg.querySelectorAll('.obstacle').forEach(o => o.style.animationPlayState = playState);
+        animationRunning = run;
+        console.log(`Animations ${playState}`);
     }
+    function startGameLoop() {
+        if (!collisionCheckInterval) {
+            collisionCheckInterval = setInterval(checkCollision, 50); // 50ms Intervall beibehalten
+            console.log("Collision check started");
+        }
+         if (!animationRunning) controlAnimations(true);
+    }
+    function stopGameLoop() {
+        if (collisionCheckInterval) {
+            clearInterval(collisionCheckInterval); collisionCheckInterval = null;
+            console.log("Collision check stopped");
+        }
+        if (animationRunning) controlAnimations(false);
+    }
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                console.log("Road visible, starting game.");
+                setTimeout(startGameLoop, 100); // Kurze Verzögerung
+            } else {
+                 console.log("Road not visible, stopping game.");
+                stopGameLoop();
+            }
+        });
+    }, { threshold: 0.1 });
+    observer.observe(road);
 
-    // Regelmäßig Kollisionen überprüfen
-    setInterval(checkCollision, 50); // Häufiger prüfen für bessere Reaktionszeit
-
-
-    // --- Dunkelmodus ---
+    // --- Dunkelmodus (unverändert) ---
     darkModeToggle.addEventListener('click', () => {
       document.body.classList.toggle('dark-mode');
-      // Optional: Zustand im localStorage speichern für Persistenz
-       if (document.body.classList.contains('dark-mode')) {
-           localStorage.setItem('darkMode', 'enabled');
-       } else {
-           localStorage.setItem('darkMode', 'disabled');
-       }
+       localStorage.setItem('darkMode', document.body.classList.contains('dark-mode') ? 'enabled' : 'disabled');
     });
-
-    // Beim Laden der Seite prüfen, ob Dunkelmodus aktiv war
     if (localStorage.getItem('darkMode') === 'enabled') {
         document.body.classList.add('dark-mode');
     }
+
+    // --- Initialisierung ---
+    console.log("Game initialized. Waiting for road visibility.");
+    // Initial car position is set by CSS
 
   </script>
 </body>
