@@ -69,21 +69,35 @@
       border-radius: 15px 15px 5px 5px;
       position: absolute;
       /* Startet sichtbar am unteren Rand */
-      bottom: -300px;
+      bottom: -300px; /* Startposition außerhalb */
       /* Startet genau in der Mitte (CSS sorgt für Initialposition) */
       left: calc(50% - 25px); /* 25px = halbe Autobbreite */
-      /* Etwas längere Transition für "langsameres" Gefühl */
-      transition: left 0.15s linear; /* Beibehalten */
+      /* --- ÄNDERUNG: Längere Transition für trägeres Gefühl --- */
+      transition: left 0.3s ease-out; /* War 0.15s linear */
       z-index: 10;
       box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-      position: relative; /* Beibehalten für Rad-Positionierung */
+      position: relative; /* Beibehalten für Kind-Positionierung */
+      will-change: left; /* Performance Hinweis */
+    }
+
+    /* --- NEU: Frontscheibe --- */
+    .windscreen {
+        position: absolute;
+        top: 10px; /* Abstand von oben */
+        left: 5px;  /* Einrückung links */
+        right: 5px; /* Einrückung rechts (Alternative: width: calc(100% - 10px);) */
+        height: 25px; /* Höhe der Scheibe */
+        background-color: #5dade2; /* Helleres Blau */
+        border-radius: 10px 10px 4px 4px; /* Oben runder, unten flacher */
+        z-index: 11; /* Über dem Autokörper */
+        box-shadow: inset 0 2px 3px rgba(0,0,0,0.15); /* Leichter Innenschatten */
     }
 
     .wheel {
         position: absolute;
         width: 14px; height: 20px;
         background-color: #212529;
-        border-radius: 4px; z-index: 9;
+        border-radius: 4px; z-index: 9; /* Unter dem Autokörper */
     }
     .wheel-tl { top: 10px; left: -8px; }
     .wheel-tr { top: 10px; right: -8px; }
@@ -169,6 +183,11 @@
     }
     body.dark-mode .obstacle { fill: #1e7e34; }
     body.dark-mode #car { background-color: #b22222; box-shadow: 0 4px 8px rgba(255,255,255,0.2); }
+    /* --- NEU: Dunkelmodus für Frontscheibe (optional, hier gleiches Blau) --- */
+    body.dark-mode .windscreen {
+        background-color: #2980b9; /* Etwas dunkleres Blau für Dark Mode */
+        box-shadow: inset 0 2px 3px rgba(255,255,255,0.1);
+    }
     body.dark-mode .wheel { background-color: #111; }
     body.dark-mode #steering-wheel-container { background: #2c2c2c; border: 2px solid #777; }
     body.dark-mode #steering-wheel-svg path { stroke: #888; }
@@ -197,6 +216,8 @@
       <circle class="obstacle o5" cx="400" cy="-900" r="29" />
     </svg>
     <div id="car">
+        <!-- --- NEU: Frontscheibe hinzugefügt --- -->
+        <div class="windscreen"></div>
         <div class="wheel wheel-tl"></div>
         <div class="wheel wheel-tr"></div>
         <div class="wheel wheel-bl"></div>
@@ -234,154 +255,265 @@
     let animationRunning = false;
     let returnIntervalId = null;
 
-    // --- Lenkrad-Logik (unverändert) ---
-    function getAngleFromEvent(event) { /*...*/
+    // --- Lenkrad-Logik ---
+    function getAngleFromEvent(event) {
         if (event.touches) event.preventDefault();
         const rect = steeringWheelContainer.getBoundingClientRect();
         const centerX = rect.left + rect.width / 2;
-        const centerY = rect.top + rect.height;
+        const centerY = rect.top + rect.height; // Pivot point at the bottom center
         const clientX = event.touches ? event.touches[0].clientX : event.clientX;
         const clientY = event.touches ? event.touches[0].clientY : event.clientY;
-        let angle = Math.atan2(clientY - centerY, clientX - centerX) * (180 / Math.PI) + 90;
+
+        // Calculate angle relative to the bottom center
+        let angle = Math.atan2(clientY - centerY, clientX - centerX) * (180 / Math.PI) + 90; // Adjust to make 0 degrees straight up
+
+        // Clamp angle between -80 and +80 degrees
         angle = Math.max(-80, Math.min(80, angle));
         return angle;
     }
-    function updateSteeringWheel(angle) { /*...*/
-        currentAngle = angle;
+
+    function updateSteeringWheel(angle) {
+        currentAngle = angle; // Update global angle
         wheelLines.style.transform = `rotate(${angle}deg)`;
     }
 
-    // --- Auto Bewegung (unverändert seit letzter Version) ---
-    function moveCar(angle) { /*...*/
+    // --- Auto Bewegung ---
+    function moveCar(angle) {
         const roadWidth = road.offsetWidth;
         const carWidth = car.offsetWidth;
-        const maxCarOffset = (roadWidth - carWidth) * 0.35;
+        // Max distance the center of the car can move from the road center
+        const maxCarOffset = (roadWidth - carWidth) * 0.35; // Car can move within inner 70% (+/- 35%)
+
+        // Calculate the car's horizontal offset based on the steering angle
+        // Linear mapping: -80 degrees -> -maxCarOffset, +80 degrees -> +maxCarOffset
         const carOffset = (angle / 80) * maxCarOffset;
+
+        // Calculate the target left position relative to the road's left edge
+        // Start from road center, subtract half car width, then add the offset
         const carLeft = (roadWidth / 2) - (carWidth / 2) + carOffset;
-        const minLeft = 0;
-        const maxLeft = roadWidth - carWidth;
+
+        // Ensure the car stays within the road boundaries
+        const minLeft = 0; // Left edge of the road
+        const maxLeft = roadWidth - carWidth; // Right edge of the road
+
+        // Apply the position, clamping it to the min/max values
         car.style.left = `${Math.max(minLeft, Math.min(maxLeft, carLeft))}px`;
     }
 
-    // --- Lenkrad Events (unverändert) ---
-    function handleSteeringStart(event) { /*...*/
-        if (!animationRunning) return;
-        if (returnIntervalId) { clearInterval(returnIntervalId); returnIntervalId = null; }
+    // --- Lenkrad Events ---
+    function handleSteeringStart(event) {
+        if (!animationRunning) return; // Only allow steering if game is running
+        if (returnIntervalId) { // Clear any existing return-to-center interval
+            clearInterval(returnIntervalId);
+            returnIntervalId = null;
+        }
         isSteeringActive = true;
         const angle = getAngleFromEvent(event);
-        updateSteeringWheel(angle); moveCar(angle);
+        updateSteeringWheel(angle);
+        moveCar(angle);
         steeringWheelContainer.style.cursor = 'grabbing';
      }
-    function handleSteeringMove(event) { /*...*/
-        if (!isSteeringActive || !animationRunning) return;
+
+    function handleSteeringMove(event) {
+        if (!isSteeringActive || !animationRunning) return; // Only move if active and game running
         const angle = getAngleFromEvent(event);
-        updateSteeringWheel(angle); moveCar(angle);
+        updateSteeringWheel(angle);
+        moveCar(angle);
      }
-    function handleSteeringEnd() { /*...*/
-        if (!isSteeringActive) return;
+
+    function handleSteeringEnd() {
+        if (!isSteeringActive) return; // Only process if steering was active
         isSteeringActive = false;
         steeringWheelContainer.style.cursor = 'pointer';
-        if (!animationRunning) return;
+
+        if (!animationRunning) return; // Don't start return animation if game stopped
+
+        // Clear previous interval just in case
         if (returnIntervalId) clearInterval(returnIntervalId);
+
+        // Smoothly return the steering wheel and car to the center
         returnIntervalId = setInterval(() => {
-            currentAngle *= 0.85;
-            updateSteeringWheel(currentAngle); moveCar(currentAngle);
+            // --- ÄNDERUNG: Langsamere Rückkehr zur Mitte ---
+            currentAngle *= 0.90; // Reduce angle gradually (was 0.85)
+            updateSteeringWheel(currentAngle);
+            moveCar(currentAngle);
+
+            // Stop when the angle is very close to zero
             if (Math.abs(currentAngle) < 0.5) {
-                currentAngle = 0; updateSteeringWheel(currentAngle); moveCar(currentAngle);
-                clearInterval(returnIntervalId); returnIntervalId = null;
+                currentAngle = 0; // Snap to zero
+                updateSteeringWheel(currentAngle);
+                moveCar(currentAngle);
+                clearInterval(returnIntervalId); // Stop the interval
+                returnIntervalId = null;
             }
-        }, 20);
+        }, 20); // Interval duration (milliseconds)
      }
+
+    // Attach event listeners
     steeringWheelContainer.addEventListener('mousedown', handleSteeringStart);
-    steeringWheelContainer.addEventListener('touchstart', handleSteeringStart, { passive: false });
+    steeringWheelContainer.addEventListener('touchstart', handleSteeringStart, { passive: false }); // Prevent default scroll on touch
+
     document.addEventListener('mousemove', handleSteeringMove);
-    document.addEventListener('touchmove', handleSteeringMove, { passive: false });
+    document.addEventListener('touchmove', handleSteeringMove, { passive: false }); // Prevent default scroll on touch
+
     document.addEventListener('mouseup', handleSteeringEnd);
     document.addEventListener('touchend', handleSteeringEnd);
-    document.addEventListener('mouseleave', () => { if (isSteeringActive) handleSteeringEnd(); });
 
-    // --- Kollisionserkennung & Explosion (unverändert) ---
-    function checkCollision() { /*...*/
-        if (!animationRunning) return;
+    // Handle cases where the mouse leaves the document while dragging
+    document.addEventListener('mouseleave', () => {
+        if (isSteeringActive) {
+            handleSteeringEnd();
+        }
+    });
+
+    // --- Kollisionserkennung & Explosion ---
+    function checkCollision() {
+        if (!animationRunning) return; // Don't check if game isn't running
+
         const carRect = car.getBoundingClientRect();
         const obstacles = gameSvg.querySelectorAll('.obstacle');
-        const roadRect = road.getBoundingClientRect();
+        const roadRect = road.getBoundingClientRect(); // Get road bounds for optimization
+
         obstacles.forEach(obstacle => {
             const obstacleRect = obstacle.getBoundingClientRect();
-            if (obstacleRect.bottom < roadRect.top - 50 || obstacleRect.top > roadRect.bottom + 50) { return; }
-            if (isColliding(carRect, obstacleRect)) { createExplosion(obstacle); }
+
+            // Optimization: Skip check if obstacle is way above or below the visible road area
+            if (obstacleRect.bottom < roadRect.top - 50 || obstacleRect.top > roadRect.bottom + 50) {
+               return; // Skip this obstacle
+            }
+
+            // Check for collision using bounding boxes
+            if (isColliding(carRect, obstacleRect)) {
+                // Collision detected!
+                createExplosion(obstacle); // Trigger visual effect
+                // Potential place to add game over logic, score reduction, etc.
+                // stopGame(); // Example: Stop the game on collision
+            }
         });
     }
-    function isColliding(rect1, rect2) { return !(rect1.right < rect2.left || rect1.left > rect2.right || rect1.bottom < rect2.top || rect1.top > rect2.bottom); }
-    function createExplosion(obstacle) { /*...*/
-        const numFragments = 8; const explosionDuration = 600;
-        const obstacleRect = obstacle.getBoundingClientRect(); const svgRect = gameSvg.getBoundingClientRect();
+
+    function isColliding(rect1, rect2) {
+        // Standard Axis-Aligned Bounding Box (AABB) collision check
+        return !(
+            rect1.right < rect2.left ||
+            rect1.left > rect2.right ||
+            rect1.bottom < rect2.top ||
+            rect1.top > rect2.bottom
+        );
+    }
+
+    function createExplosion(obstacle) {
+        const numFragments = 8;
+        const explosionDuration = 600; // milliseconds
+        const obstacleRect = obstacle.getBoundingClientRect();
+        const svgRect = gameSvg.getBoundingClientRect(); // Need SVG coords
+
+        // Calculate center of the obstacle relative to the SVG container
         const startX = obstacleRect.left + obstacleRect.width / 2 - svgRect.left;
         const startY = obstacleRect.top + obstacleRect.height / 2 - svgRect.top;
-        const color = window.getComputedStyle(obstacle).fill;
+        const color = window.getComputedStyle(obstacle).fill; // Use obstacle's color
+
         for (let i = 0; i < numFragments; i++) {
             const fragment = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-            const fragmentSize = 3 + Math.random() * 4;
-            fragment.setAttribute('cx', startX); fragment.setAttribute('cy', startY); fragment.setAttribute('r', fragmentSize); fragment.setAttribute('fill', color); fragment.classList.add('fragment');
-            const angle = Math.random() * Math.PI * 2; const distance = 40 + Math.random() * 60;
-            const tx = Math.cos(angle) * distance; const ty = Math.sin(angle) * distance;
-            fragment.style.setProperty('--tx', `${tx}px`); fragment.style.setProperty('--ty', `${ty}px`);
-            gameSvg.appendChild(fragment); fragment.classList.add('fragment-exploding');
+            const fragmentSize = 3 + Math.random() * 4; // Random size
+            fragment.setAttribute('cx', startX);
+            fragment.setAttribute('cy', startY);
+            fragment.setAttribute('r', fragmentSize);
+            fragment.setAttribute('fill', color);
+            fragment.classList.add('fragment'); // Base class for styling
+
+            // Calculate random direction and distance for explosion
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 40 + Math.random() * 60; // How far fragments fly
+            const tx = Math.cos(angle) * distance;
+            const ty = Math.sin(angle) * distance;
+
+            // Set CSS custom properties for the animation
+            fragment.style.setProperty('--tx', `${tx}px`);
+            fragment.style.setProperty('--ty', `${ty}px`);
+
+            gameSvg.appendChild(fragment);
+            // Trigger the animation by adding the class
+            fragment.classList.add('fragment-exploding');
+
+            // Remove the fragment after the animation ends
             setTimeout(() => fragment.remove(), explosionDuration);
         }
+        // Optional: Hide or reset the original obstacle
+        // obstacle.style.display = 'none';
+        // setTimeout(() => obstacle.style.display = '', 2000); // Example reset
      }
 
-    // --- Spielstart / Stopp / Animationen (Angepasst für Start/Stop Toggle) ---
+
+    // --- Spielstart / Stopp / Animationen ---
     function controlAnimations(run) {
         const playState = run ? 'running' : 'paused';
+        // Control road lines animation
         road.style.setProperty('animation-play-state', playState);
+        // Control obstacle animations
         gameSvg.querySelectorAll('.obstacle').forEach(o => o.style.animationPlayState = playState);
         console.log(`Animations ${playState}`);
     }
 
     function startGame() {
-        if (animationRunning) return; // Verhindert Doppelstart
+        if (animationRunning) return; // Prevent starting if already running
         console.log("Starting game...");
         animationRunning = true;
-        controlAnimations(true); // CSS Animationen starten
-        if (!collisionCheckInterval) { // Starte Check nur, wenn noch nicht läuft
-            collisionCheckInterval = setInterval(checkCollision, 50);
+        controlAnimations(true); // Start CSS animations
+
+        // Start collision detection interval if it's not already running
+        if (!collisionCheckInterval) {
+            collisionCheckInterval = setInterval(checkCollision, 50); // Check ~20 times/sec
             console.log("Collision check started");
         }
+
+        // Update button appearance
         startButton.textContent = "Spiel Stoppen";
-        startButton.classList.add('running'); // Klasse für roten Stil
+        startButton.classList.add('running');
     }
 
     function stopGame() {
-        if (!animationRunning) return; // Verhindert Doppelstopp
+        if (!animationRunning) return; // Prevent stopping if already stopped
         console.log("Stopping game...");
         animationRunning = false;
-        controlAnimations(false); // CSS Animationen stoppen
+        controlAnimations(false); // Pause CSS animations
 
+        // Stop collision detection
         if (collisionCheckInterval) {
             clearInterval(collisionCheckInterval);
             collisionCheckInterval = null;
             console.log("Collision check stopped");
         }
-        if (returnIntervalId) { // Aktives Lenkrad-Zurücksetzen stoppen
+
+        // Stop any active return-to-center animation
+        if (returnIntervalId) {
             clearInterval(returnIntervalId);
             returnIntervalId = null;
         }
 
-        // Lenkrad und Auto SOFORT in die Mitte zurücksetzen
+        // Reset steering wheel and car position IMMEDIATELY to center
         currentAngle = 0;
         updateSteeringWheel(currentAngle);
-        moveCar(currentAngle); // Setzt die 'left' Eigenschaft direkt
+        // Temporarily remove transition for instant reset, then re-apply
+        const originalTransition = car.style.transition;
+        car.style.transition = 'none';
+        moveCar(currentAngle); // Set 'left' property directly
+        // Force reflow/repaint might be needed in some browsers
+        car.offsetHeight; // Trigger reflow
+        // Re-apply transition for future movements
+        car.style.transition = originalTransition;
 
-        // Sicherstellen, dass Steuerung deaktiviert ist
+
+        // Ensure steering interaction is fully reset
         isSteeringActive = false;
         steeringWheelContainer.style.cursor = 'pointer';
 
+        // Update button appearance
         startButton.textContent = "Spiel Starten";
-        startButton.classList.remove('running'); // Klasse für roten Stil entfernen
+        startButton.classList.remove('running');
     }
 
-    // Event Listener für den Start/Stop Button
+    // Event Listener for the Start/Stop Button
     startButton.addEventListener('click', () => {
         if (animationRunning) {
             stopGame();
@@ -390,27 +522,33 @@
         }
     });
 
-    // Intersection Observer: Stoppt das Spiel, wenn es nicht sichtbar ist
+    // Intersection Observer: Stops the game if it's not visible
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
                 console.log("Road visible.");
-                // Nichts tun beim Sichtbarwerden, Start nur via Button
+                // Game is only started via button, so do nothing here.
             } else {
                  console.log("Road not visible, stopping game.");
-                 stopGame(); // Ruft die vereinheitlichte Stopp-Funktion auf
+                 // Stop the game if it was running when it became invisible
+                 if (animationRunning) {
+                    stopGame();
+                 }
             }
         });
-    }, { threshold: 0.1 });
+    }, { threshold: 0.1 }); // Trigger when >10% is visible/invisible
 
-    observer.observe(road);
+    observer.observe(road); // Observe the road element
 
-    // --- Dunkelmodus (unverändert) ---
-    darkModeToggle.addEventListener('click', () => { /*...*/
+    // --- Dunkelmodus ---
+    darkModeToggle.addEventListener('click', () => {
       document.body.classList.toggle('dark-mode');
-       localStorage.setItem('darkMode', document.body.classList.contains('dark-mode') ? 'enabled' : 'disabled');
+      // Save preference to localStorage
+      localStorage.setItem('darkMode', document.body.classList.contains('dark-mode') ? 'enabled' : 'disabled');
     });
-    if (localStorage.getItem('darkMode') === 'enabled') { /*...*/
+
+    // Check for saved preference on load
+    if (localStorage.getItem('darkMode') === 'enabled') {
         document.body.classList.add('dark-mode');
     }
 
