@@ -455,7 +455,7 @@
             fragment.classList.add('fragment'); // Basis-Styling
 
             // Zufällige Richtung und Distanz für Explosion
-            const angle = 180;
+            const angle = Math.random() * Math.PI * 5;
             const distance = 60 + Math.random() * -180;
             const tx = Math.cos(angle) * distance;
             const ty = Math.sin(angle) * distance;
