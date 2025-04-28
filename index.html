@@ -73,7 +73,8 @@
       /* Startet genau in der Mitte (CSS sorgt für Initialposition) */
       left: calc(50% - 25px); /* 25px = halbe Autobbreite */
       /* --- Trägere Steuerung --- */
-      transition: left 0.3s ease-out;
+      /* ÄNDERUNG HIER: Erhöhe die Dauer der Transition für langsamere Bewegung */
+      transition: left 0.6s ease-out; /* Wert von 0.3s auf 0.6s (oder höher) erhöht */
       z-index: 10;
       box-shadow: 0 4px 8px rgba(0,0,0,0.3);
       position: relative; /* Beibehalten für Kind-Positionierung */
