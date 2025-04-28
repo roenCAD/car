@@ -99,10 +99,10 @@
         background-color: #212529;
         border-radius: 4px; z-index: 9; /* Unter dem Autokörper */
     }
-    .wheel-tl { top: 80px; left: 0px; }
-    .wheel-tr { top: 80px; right: 0px; }
-    .wheel-bl { bottom: 80px; left: 0px; }
-    .wheel-br { bottom: 80px; right: 0px; }
+    .wheel-tl { top: 70px; left: 0px; }
+    .wheel-tr { top: 70px; right: 0px; }
+    .wheel-bl { bottom: 70px; left: 0px; }
+    .wheel-br { bottom: 70px; right: 0px; }
 
     /* SVG für Hindernisse */
     #game-svg {
@@ -366,7 +366,7 @@
         // Sanftes Zurückkehren zur Mitte starten
         returnIntervalId = setInterval(() => {
             // Winkel schrittweise reduzieren (Dämpfung)
-            currentAngle *= 0.90; // Langsamere Rückkehr als zuvor (0.85)
+            currentAngle *= 0.120; // Langsamere Rückkehr als zuvor (0.85)
             updateSteeringWheel(currentAngle);
             moveCar(currentAngle);
 
