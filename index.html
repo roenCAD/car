@@ -100,10 +100,10 @@
         background-color: #212529;
         border-radius: 4px; z-index: 9; /* Unter dem Autokörper */
     }
-    .wheel-tl { top: 70px; left: -5px; }
-    .wheel-tr { top: 70px; right: -5px; }
-    .wheel-bl { bottom: 70px; left: -5px; }
-    .wheel-br { bottom: 70px; right: -5px; }
+    .wheel-tl { top: 70px; left: -10px; }
+    .wheel-tr { top: 70px; right: -10px; }
+    .wheel-bl { bottom: 70px; left: -10px; }
+    .wheel-br { bottom: 70px; right: -10px; }
 
     /* SVG für Hindernisse */
     #game-svg {
@@ -189,7 +189,7 @@
 
     /* Dunkelmodus Stile */
     body.dark-mode { background-color: #1a1a1a; color: #e0e0e0; }
-    body.dark-mode #road { background-color: #343a40; border: 2px solid #555; }
+    body.dark-mode #road { background-color: none; border: 2px solid #555; }
     body.dark-mode #road::before {
          background-image: /* Gleiche Anzahl Linien wie oben */
             repeating-linear-gradient(#bbb 0px, #bbb 25px, transparent 25px, transparent 50px),
