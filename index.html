@@ -573,48 +573,7 @@
     }, { threshold: 0.1 }); // >10% sichtbar/unsichtbar
 
     observer.observe(road); // Straße beobachten
-/* Scheinwerfer (nur im Dunkelmodus sichtbar) */
-.headlight {
-    position: absolute;
-    top: 15px;
-    width: 12px;
-    height: 8px;
-    background-color: rgba(255, 255, 0, 0); /* Standard: unsichtbar */
-    border-radius: 50% 50% 0 0;
-    z-index: 11;
-    transition: background-color 0.3s ease;
-}
-.headlight-left {
-    left: 5px;
-}
-.headlight-right {
-    right: 5px;
-}
 
-/* Dunkelmodus Stile */
-body.dark-mode { background-color: #1a1a1a; color: #e0e0e0; }
-body.dark-mode #road { background-color: none; border: 2px solid #555; }
-body.dark-mode #road::before {
-     background-image: /* Gleiche Anzahl Linien wie oben */
-        repeating-linear-gradient(#bbb 0px, #bbb 25px, transparent 25px, transparent 0px),
-        repeating-linear-gradient(#bbb 0px, #bbb 25px, transparent 25px, transparent 50px),
-        repeating-linear-gradient(#bbb 0px, #bbb 25px, transparent 25px, transparent 50px),
-        repeating-linear-gradient(#bbb 0px, #bbb 25px, transparent 25px, transparent 0px);
-}
-body.dark-mode .obstacle { fill: #1e7e34; }
-body.dark-mode #car { background-color: #b22222; box-shadow: 0 4px 8px rgba(255,255,255,0.2); }
-body.dark-mode .windscreen {
-    background-color: #2980b9; /* Etwas dunkleres Blau für Dark Mode */
-    box-shadow: inset 0 2px 3px rgba(255,255,255,0.1);
-}
-body.dark-mode .wheel { background-color: #111; }
-body.dark-mode .headlight {
-    background-color: rgba(255, 255, 0, 0.6); /* Gelb mit 60% Deckkraft */
-    box-shadow: 0 0 10px 2px rgba(255, 255, 0, 0.4); /* Leucht-Effekt */
-}
-/* --- ÄNDERUNG: Dark Mode für breiten Container --- */
-body.dark-mode #steering-wheel-container {
-    background: #2c2c2c; /* Optionalen Hintergrund anpassen */
     // --- Dunkelmodus ---
     darkModeToggle.addEventListener('click', () => {
       document.body.classList.toggle('dark-mode');
