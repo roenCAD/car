@@ -81,6 +81,21 @@
       will-change: left; /* Performance Hinweis */
     }
 
+    /* Scheinwerfer (standardmäßig versteckt) */
+    .headlight {
+        position: absolute;
+        top: 70px; /* Position der Scheinwerfer */
+        width: 15px;
+        height: 8px;
+        background-color: rgba(255, 255, 0, 0.5); /* Gelb und halbtransparent */
+        border-radius: 5px;
+        box-shadow: 0 0 10px 3px rgba(255, 255, 0, 0.5); /* Gelber Schein */
+        display: none; /* Standardmäßig versteckt */
+        z-index: 12;
+    }
+    .headlight-left { left: 65px; }
+    .headlight-right { right: 65px; }
+
     /* --- Frontscheibe --- */
     .windscreen {
         position: absolute;
@@ -199,6 +214,9 @@
     }
     body.dark-mode .obstacle { fill: #1e7e34; }
     body.dark-mode #car { background-color: #b22222; box-shadow: 0 4px 8px rgba(255,255,255,0.2); }
+    /* Scheinwerfer im Dark Mode anzeigen */
+    body.dark-mode #car .headlight { display: block; }
+
     body.dark-mode .windscreen {
         background-color: #2980b9; /* Etwas dunkleres Blau für Dark Mode */
         box-shadow: inset 0 2px 3px rgba(255,255,255,0.1);
@@ -243,6 +261,9 @@
         <div class="wheel wheel-tr"></div>
         <div class="wheel wheel-bl"></div>
         <div class="wheel wheel-br"></div>
+        <!-- Scheinwerfer -->
+        <div class="headlight headlight-left"></div>
+        <div class="headlight headlight-right"></div>
     </div>
   </div>
 
