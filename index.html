@@ -192,10 +192,10 @@
     body.dark-mode #road { background-color: none; border: 2px solid #555; }
     body.dark-mode #road::before {
          background-image: /* Gleiche Anzahl Linien wie oben */
+            repeating-linear-gradient(#bbb 0px, #bbb 25px, transparent 25px, transparent 0px),
             repeating-linear-gradient(#bbb 0px, #bbb 25px, transparent 25px, transparent 50px),
             repeating-linear-gradient(#bbb 0px, #bbb 25px, transparent 25px, transparent 50px),
-            repeating-linear-gradient(#bbb 0px, #bbb 25px, transparent 25px, transparent 50px),
-            repeating-linear-gradient(#bbb 0px, #bbb 25px, transparent 25px, transparent 50px);
+            repeating-linear-gradient(#bbb 0px, #bbb 25px, transparent 25px, transparent 0px);
     }
     body.dark-mode .obstacle { fill: #1e7e34; }
     body.dark-mode #car { background-color: #b22222; box-shadow: 0 4px 8px rgba(255,255,255,0.2); }
