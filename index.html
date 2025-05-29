@@ -13,6 +13,12 @@
         /* Synchronisationsvariablen für Animationen */
         --animation-speed: 5s; /* Gleich wie Hindernis-Animation */
         --lines-travel-distance: 1300px; /* Dieselbe Distanz wie Hindernisse für Synchronisation */
+
+        /* Farben für Hindernisse (JavaScript wird diese nutzen) */
+        --obstacle-color-green-light: #28a745;
+        --obstacle-color-blue-light: #007bff;
+        --obstacle-color-green-dark: #1e7e34;
+        --obstacle-color-blue-dark: #0056b3;
     }
 
     body {
@@ -36,8 +42,29 @@
       box-shadow: 0 10px 20px rgba(0,0,0,0.2);
     }
 
-    /* Leitlinien (visuell, beeinflussen Steuerung nicht) */
-    /* Nur die ZWEI MITTLEREN Linien werden animiert */
+    /* Durchgezogene äußere Linien - JETZT INNENLIEGEND */
+    .solid-line {
+        position: absolute;
+        top: 0;
+        height: 100%;
+        width: 4px; /* Breite der Linie */
+        background-color: black;
+        z-index: 1; /* Über den ::before Linien, aber unter dem Auto */
+    }
+    .solid-line-left {
+        /* Positioniert am Ende der ersten Spur */
+        left: calc(var(--road-width) / var(--num-lines-visual) * 1);
+    }
+    .solid-line-right {
+        /* Positioniert am Anfang der letzten Spur (von rechts gezählt) */
+        right: calc(var(--road-width) / var(--num-lines-visual) * 1);
+    }
+    body.dark-mode .solid-line {
+        background-color: #333; /* Etwas heller als reines Schwarz im Dark Mode für Sichtbarkeit */
+    }
+
+
+    /* Gestrichelte mittlere Leitlinien */
     #road::before {
         content: '';
         position: absolute;
@@ -45,19 +72,18 @@
         background-image:
             repeating-linear-gradient(white 0px, white 25px, transparent 25px, transparent 50px),
             repeating-linear-gradient(white 0px, white 25px, transparent 25px, transparent 50px);
-        background-size: 4px 50px; 
+        background-size: 4px 50px;
         background-repeat: repeat-y;
+        /* Diese bleiben relativ zur gesamten Straßenbreite für die zwei mittleren Spuren */
         background-position:
-            calc(var(--road-width) / var(--num-lines-visual) * 2) 0, 
-            calc(var(--road-width) / var(--num-lines-visual) * 3) 0; 
+            calc(var(--road-width) / var(--num-lines-visual) * 2) 0,
+            calc(var(--road-width) / var(--num-lines-visual) * 3) 0;
         z-index: 0;
-        animation: moveLines var(--animation-speed) linear infinite; 
+        animation: moveLines var(--animation-speed) linear infinite;
         will-change: background-position;
-        /* Animation startet standardmäßig pausiert (WICHTIG) */
         animation-play-state: paused;
     }
 
-    /* NEUE REGEL: Startet die Animation für ::before, wenn #road die Klasse hat */
     #road.animations-running::before {
         animation-play-state: running;
     }
@@ -73,24 +99,24 @@
       background: #dc3545;
       border-radius: 15px 15px 5px 5px;
       position: absolute;
-      bottom: -250px; 
-      left: calc(50% - 25px); 
-      transition: left 0.6s ease-out; 
+      bottom: -250px;
+      left: calc(50% - 25px);
+      transition: left 0.6s ease-out;
       z-index: 10;
       box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-      position: relative; 
-      will-change: left; 
+      position: relative;
+      will-change: left;
     }
 
     .headlight {
         position: absolute;
-        top: 0px; 
+        top: 0px;
         width: 15px;
         height: 8px;
-        background-color: rgba(255, 255, 0, 0.5); 
+        background-color: rgba(255, 255, 0, 0.5);
         border-radius: 5px;
-        box-shadow: 0 0 10px 3px rgba(255, 255, 0, 0.5); 
-        display: none; 
+        box-shadow: 0 0 10px 3px rgba(255, 255, 0, 0.5);
+        display: none;
         z-index: 12;
     }
     .headlight-left { left: 0px; }
@@ -98,21 +124,21 @@
 
     .windscreen {
         position: absolute;
-        top: 10px; 
-        left: 5px;  
-        right: 5px; 
-        height: 25px; 
-        background-color: #5dade2; 
-        border-radius: 10px 10px 4px 4px; 
-        z-index: 11; 
-        box-shadow: inset 0 2px 3px rgba(0,0,0,0.15); 
+        top: 10px;
+        left: 5px;
+        right: 5px;
+        height: 25px;
+        background-color: #5dade2;
+        border-radius: 10px 10px 4px 4px;
+        z-index: 11;
+        box-shadow: inset 0 2px 3px rgba(0,0,0,0.15);
     }
 
     .wheel {
         position: absolute;
         width: 14px; height: 20px;
         background-color: #212529;
-        border-radius: 4px; z-index: 9; 
+        border-radius: 4px; z-index: 9;
     }
     .wheel-tl { top: 60px; left: -10px; }
     .wheel-tr { top: 60px; right: -10px; }
@@ -125,15 +151,14 @@
     }
 
     .obstacle {
-      fill: #28a745;
       animation: obstacleAnimation var(--animation-speed) linear infinite;
       transform-origin: center center;
-      will-change: transform;
+      will-change: transform, fill;
       animation-play-state: paused;
     }
     @keyframes obstacleAnimation {
       0% { transform: translateY(-150px); }
-      100% { transform: translateY(1150px); } 
+      100% { transform: translateY(1150px); }
     }
     .obstacle.o1 { animation-delay: 0s; }
     .obstacle.o2 { animation-delay: -1.5s; }
@@ -143,23 +168,23 @@
     .obstacle.o6 { animation-delay: -4s; }
 
      #steering-wheel-container {
-        position: relative; 
+        position: relative;
         width: 100%;
-        height: 400px; 
-        margin: 20px 0 0 0; 
-        overflow: hidden; 
-        cursor: pointer; 
+        height: 400px;
+        margin: 20px 0 0 0;
+        overflow: hidden;
+        cursor: pointer;
         background: none;
-        touch-action: none; 
+        touch-action: none;
      }
      #steering-wheel-svg {
         position: absolute;
-        bottom: 0; 
-        left: 50%; 
-        transform: translateX(-50%); 
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
         width: 500px;
         height: 500px;
-        display: block; 
+        display: block;
      }
      #steering-wheel-svg path { fill: none; stroke: black; stroke-width: 10; }
      #steering-wheel-svg .wheel-line { stroke: red; stroke-width: 5; transform-origin: 300px 300px; transition: transform 0.1s linear; }
@@ -171,7 +196,7 @@
         padding: 20px 40px;
         font-size: 24px;
         cursor: pointer;
-        background-color: #4CAF50; 
+        background-color: #4CAF50;
         color: white;
         border: none;
         border-radius: 8px;
@@ -183,7 +208,7 @@
         opacity: 0.9;
     }
     #start-button.running {
-         background-color: #f44336; 
+         background-color: #f44336;
     }
 
     .fragment { pointer-events: none; will-change: transform, opacity; z-index: 5; }
@@ -192,23 +217,22 @@
 
     /* Dunkelmodus Stile */
     body.dark-mode { background-color: #1a1a1a; color: #e0e0e0; }
-    body.dark-mode #road { background-color: none; border: 2px solid #555; }
+    body.dark-mode #road { background-color: #4a4a4a; border: 2px solid #555; }
     body.dark-mode #road::before {
-         background-image: 
+         background-image:
             repeating-linear-gradient(#bbb 0px, #bbb 25px, transparent 25px, transparent 50px),
             repeating-linear-gradient(#bbb 0px, #bbb 25px, transparent 25px, transparent 50px);
     }
-    body.dark-mode .obstacle { fill: #1e7e34; }
     body.dark-mode #car { background-color: #b22222; box-shadow: 0 4px 8px rgba(255,255,255,0.2); }
     body.dark-mode #car .headlight { display: block; }
 
     body.dark-mode .windscreen {
-        background-color: #2980b9; 
+        background-color: #2980b9;
         box-shadow: inset 0 2px 3px rgba(255,255,255,0.1);
     }
     body.dark-mode .wheel { background-color: #111; }
     body.dark-mode #steering-wheel-container {
-        background: #2c2c2c; 
+        background: #2c2c2c;
     }
     body.dark-mode #steering-wheel-svg path { stroke: #888; }
     body.dark-mode #steering-wheel-svg .wheel-line { stroke: #dc143c; }
@@ -216,12 +240,15 @@
     body.dark-mode #dark-mode-toggle { background-color: #4a4a4a; border: 2px solid #888; box-shadow: 0 2px 4px rgba(255,255,255,0.1); }
     body.dark-mode #dark-mode-toggle::before { content: '🌙'; }
     body.dark-mode #start-button { background-color: #006400; color: #e0e0e0; box-shadow: 0 4px 8px rgba(255,255,255,0.1); }
-    body.dark-mode #start-button.running { background-color: #c62828; } 
+    body.dark-mode #start-button.running { background-color: #c62828; }
 
   </style>
 </head>
 <body>
   <div id="road">
+    <div class="solid-line solid-line-left"></div>
+    <div class="solid-line solid-line-right"></div>
+
     <svg id="game-svg">
       <circle class="obstacle o1" cx="80"  cy="-50" r="30" />
       <circle class="obstacle o2" cx="400" cy="-150" r="35" />
@@ -275,11 +302,37 @@
     let animationRunning = false;
     let returnIntervalId = null;
 
+    function updateObstacleColors() {
+        const roadWidth = road.offsetWidth;
+        const obstacles = gameSvg.querySelectorAll('.obstacle');
+        const isDarkMode = document.body.classList.contains('dark-mode');
+        const rootStyles = getComputedStyle(document.documentElement);
+
+        const colorGreen = isDarkMode ? rootStyles.getPropertyValue('--obstacle-color-green-dark').trim() : rootStyles.getPropertyValue('--obstacle-color-green-light').trim();
+        const colorBlue = isDarkMode ? rootStyles.getPropertyValue('--obstacle-color-blue-dark').trim() : rootStyles.getPropertyValue('--obstacle-color-blue-light').trim();
+
+        const numVisualLanes = parseFloat(rootStyles.getPropertyValue('--num-lines-visual'));
+        const laneWidth = roadWidth / numVisualLanes;
+
+        const leftThreshold = laneWidth;
+        const rightThreshold = roadWidth - laneWidth;
+
+        obstacles.forEach(obstacle => {
+            const cx = parseFloat(obstacle.getAttribute('cx'));
+            if (cx <= leftThreshold || cx >= rightThreshold) {
+                obstacle.style.fill = colorGreen;
+            } else {
+                obstacle.style.fill = colorBlue;
+            }
+        });
+    }
+
+
     function getAngleFromEvent(event) {
         if (event.touches) event.preventDefault();
         const rect = steeringWheelContainer.getBoundingClientRect();
         const centerX = rect.left + rect.width / 2;
-        const centerY = rect.top + rect.height; 
+        const centerY = rect.top + rect.height;
         const clientX = event.touches ? event.touches[0].clientX : event.clientX;
         const clientY = event.touches ? event.touches[0].clientY : event.clientY;
         let angle = Math.atan2(clientY - centerY, clientX - centerX) * (180 / Math.PI) + 90;
@@ -288,7 +341,7 @@
     }
 
     function updateSteeringWheel(angle) {
-        currentAngle = angle; 
+        currentAngle = angle;
         wheelLines.style.transform = `rotate(${angle}deg)`;
     }
 
@@ -296,61 +349,64 @@
         const roadWidth = road.offsetWidth;
         const carWidth = car.offsetWidth;
         const maxCarOffset = (roadWidth - carWidth) * 0.35;
-        const carOffset = (angle / 80) * maxCarOffset;
-        const carLeft = (roadWidth / 2) - (carWidth / 2) + carOffset;
-        const minLeft = 0; 
-        const maxLeft = roadWidth - carWidth; 
-        car.style.left = `${Math.max(minLeft, Math.min(maxLeft, carLeft))}px`;
+        const carOffset = (angle / 50) * maxCarOffset;
+
+        const carLeftAbsoluteMax = (roadWidth / 2) - (carWidth / 2) + carOffset;
+
+        const minLeft = 0;
+        const maxLeft = roadWidth - carWidth;
+
+        car.style.left = `${Math.max(minLeft, Math.min(maxLeft, carLeftAbsoluteMax))}px`;
     }
 
     function handleSteeringStart(event) {
-        if (!animationRunning) return; 
-        if (returnIntervalId) { 
+        if (!animationRunning) return;
+        if (returnIntervalId) {
             clearInterval(returnIntervalId);
             returnIntervalId = null;
         }
         isSteeringActive = true;
         const angle = getAngleFromEvent(event);
         updateSteeringWheel(angle);
-        moveCar(angle); 
-        steeringWheelContainer.style.cursor = 'grabbing'; 
+        moveCar(angle);
+        steeringWheelContainer.style.cursor = 'grabbing';
      }
 
     function handleSteeringMove(event) {
-        if (!isSteeringActive || !animationRunning) return; 
+        if (!isSteeringActive || !animationRunning) return;
         const angle = getAngleFromEvent(event);
         updateSteeringWheel(angle);
-        moveCar(angle); 
+        moveCar(angle);
      }
 
     function handleSteeringEnd() {
-        if (!isSteeringActive) return; 
+        if (!isSteeringActive) return;
         isSteeringActive = false;
-        steeringWheelContainer.style.cursor = 'pointer'; 
+        steeringWheelContainer.style.cursor = 'pointer';
 
-        if (!animationRunning) return; 
+        if (!animationRunning) return;
 
         if (returnIntervalId) clearInterval(returnIntervalId);
 
         returnIntervalId = setInterval(() => {
-            currentAngle *= 0.120; 
+            currentAngle *= 0.120;
             updateSteeringWheel(currentAngle);
             moveCar(currentAngle);
 
             if (Math.abs(currentAngle) < 0.5) {
-                currentAngle = 0; 
+                currentAngle = 0;
                 updateSteeringWheel(currentAngle);
                 moveCar(currentAngle);
-                clearInterval(returnIntervalId); 
+                clearInterval(returnIntervalId);
                 returnIntervalId = null;
             }
-        }, 20); 
+        }, 20);
      }
 
     steeringWheelContainer.addEventListener('mousedown', handleSteeringStart);
-    steeringWheelContainer.addEventListener('touchstart', handleSteeringStart, { passive: false }); 
+    steeringWheelContainer.addEventListener('touchstart', handleSteeringStart, { passive: false });
     document.addEventListener('mousemove', handleSteeringMove);
-    document.addEventListener('touchmove', handleSteeringMove, { passive: false }); 
+    document.addEventListener('touchmove', handleSteeringMove, { passive: false });
     document.addEventListener('mouseup', handleSteeringEnd);
     document.addEventListener('touchend', handleSteeringEnd);
     document.addEventListener('mouseleave', () => {
@@ -360,18 +416,18 @@
     });
 
     function checkCollision() {
-        if (!animationRunning) return; 
+        if (!animationRunning) return;
         const carRect = car.getBoundingClientRect();
         const obstacles = gameSvg.querySelectorAll('.obstacle');
-        const roadRect = road.getBoundingClientRect(); 
+        const roadRect = road.getBoundingClientRect();
 
         obstacles.forEach(obstacle => {
             const obstacleRect = obstacle.getBoundingClientRect();
             if (obstacleRect.bottom < roadRect.top - 50 || obstacleRect.top > roadRect.bottom + 50) {
-               return; 
+               return;
             }
             if (isColliding(carRect, obstacleRect)) {
-                createExplosion(obstacle); 
+                createExplosion(obstacle);
             }
         });
     }
@@ -387,21 +443,22 @@
 
     function createExplosion(obstacle) {
         const numFragments = 8;
-        const explosionDuration = 600; 
+        const explosionDuration = 600;
         const obstacleRect = obstacle.getBoundingClientRect();
-        const svgRect = gameSvg.getBoundingClientRect(); 
+        const svgRect = gameSvg.getBoundingClientRect();
         const startX = obstacleRect.left + obstacleRect.width / 2 - svgRect.left;
         const startY = obstacleRect.top + obstacleRect.height / 2 - svgRect.top;
-        const color = window.getComputedStyle(obstacle).fill; 
+        const color = obstacle.style.fill || getComputedStyle(document.documentElement).getPropertyValue('--obstacle-color-blue-light').trim();
+
 
         for (let i = 0; i < numFragments; i++) {
             const fragment = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-            const fragmentSize = 3 + Math.random() * 4; 
+            const fragmentSize = 3 + Math.random() * 4;
             fragment.setAttribute('cx', startX);
             fragment.setAttribute('cy', startY);
             fragment.setAttribute('r', fragmentSize);
             fragment.setAttribute('fill', color);
-            fragment.classList.add('fragment'); 
+            fragment.classList.add('fragment');
             const angle = Math.random() * Math.PI * 11;
             const distance = 60 + Math.random() * -180;
             const tx = Math.cos(angle) * distance;
@@ -415,39 +472,35 @@
      }
 
     function controlAnimations(run) {
-        const playState = run ? 'running' : 'paused'; // Behalten für Hindernisse
-
-        // Straßenlinien Animation über Klassen-Toggle auf #road steuern
+        const playState = run ? 'running' : 'paused';
         if (run) {
             road.classList.add('animations-running');
         } else {
             road.classList.remove('animations-running');
         }
-
-        // Hindernis Animationen direkt steuern
         gameSvg.querySelectorAll('.obstacle').forEach(o => o.style.animationPlayState = playState);
         console.log(`Animations ${run ? 'running' : 'paused'}`);
     }
 
     function startGame() {
-        if (animationRunning) return; 
+        if (animationRunning) return;
         console.log("Starting game...");
         animationRunning = true;
-        controlAnimations(true); 
+        controlAnimations(true);
 
         if (!collisionCheckInterval) {
-            collisionCheckInterval = setInterval(checkCollision, 50); 
+            collisionCheckInterval = setInterval(checkCollision, 50);
             console.log("Collision check started");
         }
-        startButton.textContent = "ENGINE"; // Text bleibt gleich, aber Klasse wird gesetzt
+        startButton.textContent = "ENGINE";
         startButton.classList.add('running');
     }
 
     function stopGame() {
-        if (!animationRunning) return; 
+        if (!animationRunning) return;
         console.log("Stopping game...");
         animationRunning = false;
-        controlAnimations(false); 
+        controlAnimations(false);
 
         if (collisionCheckInterval) {
             clearInterval(collisionCheckInterval);
@@ -464,13 +517,13 @@
         updateSteeringWheel(currentAngle);
         const originalTransition = car.style.transition;
         car.style.transition = 'none';
-        moveCar(currentAngle); 
-        car.offsetHeight; 
+        moveCar(currentAngle);
+        car.offsetHeight;
         car.style.transition = originalTransition;
 
         isSteeringActive = false;
         steeringWheelContainer.style.cursor = 'pointer';
-        startButton.textContent = "ENGINE"; // Text bleibt gleich, aber Klasse wird entfernt
+        startButton.textContent = "ENGINE";
         startButton.classList.remove('running');
     }
 
@@ -486,26 +539,31 @@
         entries.forEach(entry => {
             if (entry.isIntersecting) {
                 console.log("Road visible.");
+                 updateObstacleColors();
             } else {
                  console.log("Road not visible, stopping game.");
-                 if (animationRunning) { 
+                 if (animationRunning) {
                     stopGame();
                  }
             }
         });
-    }, { threshold: 0.1 }); 
-    observer.observe(road); 
+    }, { threshold: 0.1 });
+    observer.observe(road);
 
     darkModeToggle.addEventListener('click', () => {
       document.body.classList.toggle('dark-mode');
       localStorage.setItem('darkMode', document.body.classList.contains('dark-mode') ? 'enabled' : 'disabled');
+      updateObstacleColors();
     });
 
-    if (localStorage.getItem('darkMode') === 'enabled') {
-        document.body.classList.add('dark-mode');
-    }
+    document.addEventListener('DOMContentLoaded', () => {
+        if (localStorage.getItem('darkMode') === 'enabled') {
+            document.body.classList.add('dark-mode');
+        }
+        updateObstacleColors();
+        console.log("Game initialized. Press Start Button to play.");
+    });
 
-    console.log("Game initialized. Press Start Button to play.");
   </script>
 </body>
 </html>
