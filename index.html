@@ -242,6 +242,54 @@
     body.dark-mode #start-button { background-color: #006400; color: #e0e0e0; box-shadow: 0 4px 8px rgba(255,255,255,0.1); }
     body.dark-mode #start-button.running { background-color: #c62828; }
 
+    /* Neue Buttons für Links */
+    .link-buttons-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin: 15px 0;
+        gap: 10px;
+    }
+    
+    .link-button {
+        width: 50px;
+        height: 50px;
+        border: none;
+        border-radius: 50%;
+        cursor: pointer;
+        font-size: 20px;
+        font-weight: bold;
+        color: white;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .link-button:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+    }
+    
+    .link-button:active {
+        transform: translateY(1px);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    
+    .btn-purple { background-color: #9b59b6; }
+    .btn-orange { background-color: #e67e22; }
+    .btn-teal { background-color: #1abc9c; }
+    .btn-pink { background-color: #e91e63; }
+    
+    body.dark-mode .link-button {
+        box-shadow: 0 4px 8px rgba(255,255,255,0.1);
+    }
+    
+    body.dark-mode .link-button:hover {
+        box-shadow: 0 6px 12px rgba(255,255,255,0.2);
+    }
+    
+    body.dark-mode .link-button:active {
+        box-shadow: 0 2px 4px rgba(255,255,255,0.1);
+    }
   </style>
 </head>
 <body>
@@ -284,7 +332,14 @@
     </svg>
   </div>
 
-  <div id="dark-mode-toggle"></div>
+  <div class="link-buttons-container">
+    <button class="link-button btn-purple" onclick="window.open('https://example.com', '_blank')">1</button>
+    <button class="link-button btn-orange" onclick="window.open('https://example.com', '_blank')">2</button>
+    <div id="dark-mode-toggle"></div>
+    <button class="link-button btn-teal" onclick="window.open('https://example.com', '_blank')">3</button>
+    <button class="link-button btn-pink" onclick="window.open('https://example.com', '_blank')">4</button>
+  </div>
+  
   <button id="start-button">ENGINE</button>
 
   <script>
