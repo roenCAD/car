@@ -516,7 +516,6 @@ select option{background:var(--surface2); color:var(--text)}
       <div class="keys" data-i18n-html="keys"></div>
     </section>
   </aside>
-
   <section class="stage" id="stage">
     <div class="stage-toolbar">
       <div class="ftabs" id="floorTabs" role="tablist"></div>
@@ -535,7 +534,8 @@ select option{background:var(--surface2); color:var(--text)}
         <button class="btn btn-icon" id="btnFit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
       </div>
       <button class="btn btn-sm" id="btnDraw"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7-4-4-7 7v4h4zM15 8l1.5-1.5a2.1 2.1 0 0 1 3 3L18 11"/></svg><span data-i18n="draw"></span></button>
-      <div class="fsgroup"><span class="el" data-i18n="view"></span>
+   
+   <div class="fsgroup"><span class="el" data-i18n="view"></span>
         <button class="btn btn-gold" id="btnFs"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg><span data-i18n="fullscreen"></span></button>
       </div>
     </div>
@@ -599,7 +599,6 @@ select option{background:var(--surface2); color:var(--text)}
       <button data-view="100" class="on"><span class="dot"></span>1:100</button>
       <button data-view="50"><span class="dot"></span>1:50</button>
       <button data-view="elev"><span class="dot"></span><span data-i18n="elevTab"></span></button>
-      <button data-view="sect"><span class="dot"></span><span data-i18n="sectTab"></span></button>
     </div>
     <div class="sp"></div>
     <div class="zoomgrp">
@@ -609,6 +608,10 @@ select option{background:var(--surface2); color:var(--text)}
       <button class="btn btn-icon" id="fsFit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
     </div>
     <button class="btn btn-sm" id="fsDraw"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7-4-4-7 7v4h4zM15 8l1.5-1.5a2.1 2.1 0 0 1 3 3L18 11"/></svg><span data-i18n="draw"></span></button>
+    <div class="exgroup">
+      <button class="btn btn-gold" id="fsSvg" data-i18n-title="svgTitle"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 3v11M7 9l5 5 5-5M4 20h16"/></svg>SVG</button>
+      <button class="btn btn-gold" id="fsPng" data-i18n-title="pngTitle"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 3v11M7 9l5 5 5-5M4 20h16"/></svg>PNG</button>
+    </div>
     <button class="btn btn-gold" id="fsMin"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg><span data-i18n="fsMin"></span></button>
   </div>
   <div class="fs-stage sheet-wrap" id="fsWrap"></div>
@@ -2603,6 +2606,7 @@ function minimizeFS(){
   },290);
 }
 document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement&&nativeFS){nativeFS=false;minimizeFS();}});
+
 /* ---------- Sonne ---------- */
 function sunSVG(){
   const th=THEMES[S.theme]||THEMES.realistisch,c=M.clim,s=M.sun;
