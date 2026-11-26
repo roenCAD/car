@@ -2571,6 +2571,104 @@ function roomInfo(r){
   setStatus(tf('stRoom',{n:r.name,a:fmt(r.w*r.h),l:tabName(fl.level),w:fmt(Math.max(r.w,r.h),2),h:fmt(Math.min(r.w,r.h),2),win:wins})+uTag+(fin?' · '+fin:''));
   AudioFX.click();
 }
+/* ---------- EXPORT · SVG / PNG ---------- */
+let exporting=false,exportGuard=null;
+function sheetTag(){return S.elevations?'ANS':tabName(S.floorView).replace(/[.\s]/g,'');}
+function fileName(ext){return `buildinggenerator-BG${M.seed}-${sheetTag()}-1zu${S.elevations?100:S.scale}.${ext}`;}
+const kb=b=>Math.max(1,Math.round(b.size/1024))+' KB';
+function exportClone(ppm){
+  const svg=$('sheet').cloneNode(true);
+  svg.querySelectorAll('.rhit').forEach(el=>el.remove());
+  svg.querySelectorAll('g.hl').forEach(el=>el.classList.remove('hl'));
+  svg.querySelectorAll('[style]').forEach(el=>{
+    el.style.strokeDasharray='';el.style.strokeDashoffset='';
+    if(!el.getAttribute('style'))el.removeAttribute('style');
+  });
+  ['style','id','class','role','aria-label'].forEach(a=>svg.removeAttribute(a));
+  svg.setAttribute('xmlns',NS);
+  svg.setAttribute('width',Math.max(1,Math.round(sheetBox.w*ppm)));
+  svg.setAttribute('height',Math.max(1,Math.round(sheetBox.h*ppm)));
+  const ti=document.createElementNS(NS,'title');
+  ti.textContent=`${M.project} · BG-${M.seed} · ${S.elevations?t('elevTitle'):lvlName(S.floorView)} · M 1:${S.elevations?100:S.scale} · buildinggenerator by RBCAD`;
+  svg.insertBefore(ti,svg.firstChild);
+  const de=document.createElementNS(NS,'desc');
+  de.textContent=JSON.stringify({app:'buildinggenerator by RBCAD',type:S.buildingType,typology:activeTypo(),seed:S.seed,
+    persons:S.persons,units:S.units,lat:S.lat,area:S.area,floors:M.effFloors,view:S.elevations?'elevations':`1:${S.scale}`,
+    style:S.theme,walls:S.wallsMode,masonry:S.material,date:new Date().toISOString()});
+  svg.insertBefore(de,ti.nextSibling);
+  return svg;
+}
+function serialize(ppm){return new XMLSerializer().serializeToString(exportClone(ppm));}
+function download(blob,name){
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=name;a.rel='noopener';a.style.display='none';
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),12000);
+}
+function setExportBusy(on){
+  exporting=on;
+  ['btnSvg','btnPng','fsSvg','fsPng','btnCopySvg'].forEach(id=>{const el=$(id);if(el)el.disabled=on;});
+  $('pngLbl').textContent=on?'…':'PNG';
+}
+function exportSVG(){
+  if(exporting||!M)return;
+  try{
+    const str='<?xml version="1.0" encoding="UTF-8"?>\n'+serialize(40);
+    const blob=new Blob([str],{type:'image/svg+xml;charset=utf-8'});
+    const name=fileName('svg');
+    download(blob,name);
+    AudioFX.click();
+    toast(tf('tSvgOk',{f:name,s:kb(blob)}));
+    setStatus(tf('stSvg',{f:name}));
+  }catch(err){console.error(err);toast(t('tExpFail'),{tone:'danger'});}
+}
+function exportPNG(){
+  if(exporting||!M)return;
+  setExportBusy(true);
+  setStatus(t('stPngBusy'));
+  const res=clamp(+S.pngRes||4,2,6);
+  let ppm=Math.min(40*res,4096/Math.max(1,sheetBox.w),4096/Math.max(1,sheetBox.h));
+  const w=Math.max(1,Math.round(sheetBox.w*ppm)),h=Math.max(1,Math.round(sheetBox.h*ppm));
+  let url=null;
+  const done=()=>{clearTimeout(exportGuard);exportGuard=null;if(url)URL.revokeObjectURL(url);setExportBusy(false);};
+  exportGuard=setTimeout(()=>{if(exporting){done();toast(t('tExpFail'),{tone:'danger'});setStatus(defaultMsg());}},20000);
+  try{
+    const str=serialize(ppm);
+    url=URL.createObjectURL(new Blob([str],{type:'image/svg+xml;charset=utf-8'}));
+    const img=new Image();
+    img.onload=()=>{
+      try{
+        const cv=document.createElement('canvas');cv.width=w;cv.height=h;
+        const cx=cv.getContext('2d');
+        cx.drawImage(img,0,0,w,h);
+        const name=fileName('png');
+        const finish=b=>{
+          if(b){download(b,name);AudioFX.click();toast(tf('tPngOk',{f:name,w,h,s:kb(b)}));setStatus(tf('stPng',{f:name,w,h}));}
+          else{toast(t('tExpFail'),{tone:'danger'});setStatus(defaultMsg());}
+          done();
+        };
+        if(cv.toBlob)cv.toBlob(finish,'image/png');
+        else{
+          const du=cv.toDataURL('image/png'),bin=atob(du.split(',')[1]),arr=new Uint8Array(bin.length);
+          for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);
+          finish(new Blob([arr],{type:'image/png'}));
+        }
+      }catch(err){console.error(err);toast(t('tExpFail'),{tone:'danger'});setStatus(defaultMsg());done();}
+    };
+    img.onerror=()=>{toast(t('tExpFail'),{tone:'danger'});setStatus(defaultMsg());done();};
+    img.src=url;
+  }catch(err){console.error(err);toast(t('tExpFail'),{tone:'danger'});setStatus(defaultMsg());done();}
+}
+function copySVG(){
+  if(!M)return;
+  try{
+    const str=serialize(40);
+    if(navigator.clipboard&&navigator.clipboard.writeText)
+      navigator.clipboard.writeText(str).then(()=>{AudioFX.click();toast(t('tCopiedSvg'));}).catch(()=>toast(t('tCopyFail'),{tone:'warn'}));
+    else toast(t('tCopyFail'),{tone:'warn'});
+  }catch(err){console.error(err);toast(t('tCopyFail'),{tone:'warn'});}
+}
 /* ---------- Vollbild ---------- */
 let nativeFS=false,appViewSaved=null,lastFocus=null,fsCloseT=null;
 function syncFsMeta(){
